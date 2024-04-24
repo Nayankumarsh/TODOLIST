@@ -32,19 +32,27 @@ exports.updateTask = async (req, res) => {
 //delete
 exports.deleteTask = async (req, res) => {
   try {
-    const { id } = req.body;
-    const existingUser = await User.findByIdAndUpdate(id, {
+    const { email } = req.body;
+
+    // Find the user by email
+    const existingUser = await User.findOneAndUpdate({ email: email }, {
       $pull: { list: req.params.id },
     });
+
     if (existingUser) {
-      await List.findByIdAndDelete(req.params.id).then(() =>
-        res.status(200).json({ message: "Task Deleted" })
-      );
+      // If the user exists, delete the task
+      await List.findByIdAndDelete(req.params.id);
+      res.status(200).json({ message: "Task Deleted" });
+    } else {
+      // If the user doesn't exist or there's an error, send an appropriate response
+      res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
     console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 //getTska
 exports.getTasks = async (req, res) => {
@@ -52,11 +60,18 @@ exports.getTasks = async (req, res) => {
     const list = await List.find({ user: req.params.id }).sort({
       createdAt: -1,
     });
+
     if (list.length !== 0) {
       res.status(200).json({ list: list });
+    } else {
+      // If no tasks are found for the user, send a 404 response
+      res.status(404).json({ message: "No tasks found for the user" });
     }
   } catch (error) {
     console.log(error);
+    // If an error occurs during the database operation, send a 500 response
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
